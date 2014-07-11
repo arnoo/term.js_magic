@@ -124,7 +124,8 @@ var normal = 0
   , osc = 3
   , charset = 4
   , dcs = 5
-  , ignore = 6;
+  , ignore = 6
+  , magic = 99;
 
 /**
  * Terminal
@@ -1544,6 +1545,12 @@ Terminal.prototype.write = function(data) {
             this.currentParam = 0;
             this.state = osc;
             break;
+         
+	  case ':':
+            this.params = [];
+            this.currentParam = '';
+            this.state = magic;
+            break;
 
           // ESC P Device Control String ( DCS is 0x90).
           case 'P':
@@ -1766,6 +1773,20 @@ Terminal.prototype.write = function(data) {
         this.gcharset = null;
         this.state = normal;
         break;
+
+      case magic:
+        if (ch===';' && this.currentParam.length>0) {
+          this.params.push(this.currentParam);
+          this.currentParam='';
+          }
+        else if (ch===':' && this.params.length>0) {
+          this.state = normal;
+	  magic.handleMagicEscape(this.params);
+          }
+        else {
+          this.currentParam+=ch;
+        }
+	break;
 
       case osc:
         // OSC Ps ; Pt ST
