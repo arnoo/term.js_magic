@@ -253,6 +253,7 @@ function Terminal(options) {
 
   this.defAttr = (0 << 18) | (257 << 9) | (256 << 0);
   this.curAttr = this.defAttr;
+  this.nextMagic = false;
 
   this.params = [];
   this.currentParam = 0;
@@ -1180,6 +1181,10 @@ Terminal.prototype.refresh = function(start, end) {
     , out
     , ch
     , width
+    , magicIndex
+    , magicTags
+    , magicStyle
+    , magicData
     , data
     , attr
     , bg
@@ -1233,11 +1238,21 @@ Terminal.prototype.refresh = function(start, end) {
           if (data === -1) {
             out += '<span class="reverse-video terminal-cursor">';
           } else {
-            out += '<span style="';
 
             bg = data & 0x1ff;
             fg = (data >> 9) & 0x1ff;
-            flags = data >> 18;
+            flags = (data >> 18) & 0x1ff;
+	    magicIndex = (data >> 27);
+
+	    magicStyle = '';
+	    magicTags = '';
+	    if (magicIndex>0) {
+		    magicData = line[magicIndex-1][2];
+		    magicStyle = magicData.style;
+		    magicTags = magicData.tags;
+		    }
+
+            out += '<span '+magicTags+' style="'+magicStyle+";";
 
             // bold
             if (flags & 1) {
@@ -1514,6 +1529,10 @@ Terminal.prototype.write = function(data) {
               }
 
               this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
+	      if (this.nextMagic) {
+                this.lines[this.y + this.ybase][this.x][2] = this.nextMagic;
+		this.nextMagic = false;
+              }
               this.x++;
               this.updateRange(this.y);
 
@@ -1779,9 +1798,10 @@ Terminal.prototype.write = function(data) {
           this.params.push(this.currentParam);
           this.currentParam='';
           }
-        else if (ch===':' && this.params.length>0) {
+        else if (ch===':') {
           this.state = normal;
-	  magic.handleMagicEscape(this.params);
+          this.params.push(this.currentParam);
+	  Magic.handleMagicEscape(this);
           }
         else {
           this.currentParam+=ch;
@@ -3189,7 +3209,8 @@ Terminal.prototype.charAttributes = function(params) {
 
   var l = params.length
     , i = 0
-    , flags = this.curAttr >> 18
+    , magicIndex = this.curAttr >> 27 
+    , flags = (this.curAttr >> 18) & 0x1ff
     , fg = (this.curAttr >> 9) & 0x1ff
     , bg = this.curAttr & 0x1ff
     , p;
@@ -3294,7 +3315,7 @@ Terminal.prototype.charAttributes = function(params) {
     }
   }
 
-  this.curAttr = (flags << 18) | (fg << 9) | bg;
+  this.curAttr = (magicIndex << 27) | (flags << 18) | (fg << 9) | bg;
 };
 
 // CSI Ps n  Device Status Report (DSR).
@@ -4110,6 +4131,10 @@ Terminal.prototype.repeatPrecedingCharacter = function(params) {
   var param = params[0] || 1
     , line = this.lines[this.ybase + this.y]
     , ch = line[this.x - 1] || [this.defAttr, ' '];
+  
+  // magicData should not be repeated
+  if (ch.length>2)
+    ch = ch.slice(0,-1);
 
   while (param--) line[this.x++] = ch;
 };
