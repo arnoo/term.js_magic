@@ -1241,8 +1241,8 @@ Terminal.prototype.refresh = function(start, end) {
 
             bg = data & 0x1ff;
             fg = (data >> 9) & 0x1ff;
-            flags = (data >> 18) & 0x1ff;
-	    magicIndex = (data >> 27);
+            flags = (data >> 18) & 0x1f;
+	    magicIndex = (data >> 23);
 
 	    magicStyle = '';
 	    magicTags = '';
@@ -3209,8 +3209,8 @@ Terminal.prototype.charAttributes = function(params) {
 
   var l = params.length
     , i = 0
-    , magicIndex = this.curAttr >> 27 
-    , flags = (this.curAttr >> 18) & 0x1ff
+    , magicIndex = this.curAttr >> 23
+    , flags = (this.curAttr >> 18) & 0x1f
     , fg = (this.curAttr >> 9) & 0x1ff
     , bg = this.curAttr & 0x1ff
     , p;
@@ -3315,7 +3315,7 @@ Terminal.prototype.charAttributes = function(params) {
     }
   }
 
-  this.curAttr = (magicIndex << 27) | (flags << 18) | (fg << 9) | bg;
+  this.curAttr = (magicIndex << 23) | (flags << 18) | (fg << 9) | bg;
 };
 
 // CSI Ps n  Device Status Report (DSR).
