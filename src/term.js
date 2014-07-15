@@ -253,7 +253,8 @@ function Terminal(options) {
 
   this.defAttr = (0 << 18) | (257 << 9) | (256 << 0);
   this.curAttr = this.defAttr;
-  this.nextMagic = false;
+  this.magicData = options.magicData || [];
+  this.currentOpenMagic = options.currentOpenMagic || {};
 
   this.params = [];
   this.currentParam = 0;
@@ -1184,7 +1185,8 @@ Terminal.prototype.refresh = function(start, end) {
     , magicIndex
     , magicTags
     , magicStyle
-    , magicData
+    , mref
+    , mData
     , data
     , attr
     , bg
@@ -1247,10 +1249,12 @@ Terminal.prototype.refresh = function(start, end) {
 	    magicStyle = '';
 	    magicTags = '';
 	    if (magicIndex>0) {
-		    magicData = line[magicIndex-1][2];
-		    magicStyle = magicData.style;
-		    magicTags = magicData.tags;
-		    }
+              for (mref =0; mref< this.magicData[magicIndex-1].length; mref++) {
+	        mData = this.magicData[magicIndex-1][mref];
+	        magicStyle += "; "+mData.style;
+	        magicTags += " "+mData.tags;
+	        }
+	    }
 
             out += '<span '+magicTags+' style="'+magicStyle+";";
 
@@ -1529,10 +1533,6 @@ Terminal.prototype.write = function(data) {
               }
 
               this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
-	      if (this.nextMagic) {
-                this.lines[this.y + this.ybase][this.x][2] = this.nextMagic;
-		this.nextMagic = false;
-              }
               this.x++;
               this.updateRange(this.y);
 
@@ -2995,6 +2995,8 @@ Terminal.prototype.reverseIndex = function() {
 Terminal.prototype.reset = function() {
   this.options.rows = this.rows;
   this.options.cols = this.cols;
+  this.options.magicData = this.magicData;
+  this.options.currentOpenMagic = this.currentOpenMagic;
   Terminal.call(this, this.options);
   this.refresh(0, this.rows - 1);
 };
@@ -4132,10 +4134,6 @@ Terminal.prototype.repeatPrecedingCharacter = function(params) {
     , line = this.lines[this.ybase + this.y]
     , ch = line[this.x - 1] || [this.defAttr, ' '];
   
-  // magicData should not be repeated
-  if (ch.length>2)
-    ch = ch.slice(0,-1);
-
   while (param--) line[this.x++] = ch;
 };
 
