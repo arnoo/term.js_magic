@@ -1247,16 +1247,16 @@ Terminal.prototype.refresh = function(start, end) {
 	    magicIndex = (data >> 23);
 
 	    magicStyle = '';
-	    magicTags = '';
+	    magicTags = {};
 	    if (magicIndex>0) {
               for (mref =0; mref< this.magicData[magicIndex-1].length; mref++) {
 	        mData = this.magicData[magicIndex-1][mref];
 	        magicStyle += "; "+mData.style;
-	        magicTags += " "+mData.tags;
+	        Magic.addTags(magicTags, mData.tags);
 	        }
 	    }
 
-            out += '<span '+magicTags+' style="'+magicStyle+";";
+            out += '<span '+Magic.tagsToHtml(magicTags)+' style="'+magicStyle+';';
 
             // bold
             if (flags & 1) {
